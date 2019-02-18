@@ -305,7 +305,7 @@ public class ThumbnailIndexer extends Metadata {
     private WMSCapabilities getWMSCapabilities(String url) {
         WMSCapabilities wmsCapabilities = null;
         try {
-            WebMapServer wms = new WebMapServer(new URL(url));
+            WebMapServer wms = new WebMapServer(new URL(url), 90);
             wmsCapabilities = wms.getCapabilities();
         } catch (IOException ex) {
             LOGGER.error("Failed to get WMS capabilities [" + url + "]", ex);
