@@ -213,6 +213,12 @@ public class MetadataManager {
     @Parameters(commandDescription = "Create solr schema,")
     private static class CreateSchemaCommand {
 
+        @Parameter(names = "--solrVersion",
+                description = "Version of target solr server. Supported values are [5, 7]",
+                required = true,
+                validateWith = SolrVersionValidator.class)
+        private int solrVersion;
+
         @Parameter(names = "--destinationDirectory", required = true,
                 description = "Destination directory where solr schema will be created",
                 validateWith = FilePathValidator.class)
@@ -358,7 +364,7 @@ public class MetadataManager {
             LOGGER.info("Creating solr schema at " + schemaCommand.destinationDirectory);
             List<String> fullTextFields = customAppConfig.getStringList("no.met.metsis.solr.fullTextFields");
             List<String> facetFields = customAppConfig.getStringList("no.met.metsis.solr.facetFields");
-            SchemaOutput.outputSolrSchema(Paths.get(schemaCommand.destinationDirectory), fullTextFields, facetFields);
+            SchemaOutput.outputSolrSchema(schemaCommand.solrVersion, Paths.get(schemaCommand.destinationDirectory), fullTextFields, facetFields);
         } else {
             jc.usage();
         }
