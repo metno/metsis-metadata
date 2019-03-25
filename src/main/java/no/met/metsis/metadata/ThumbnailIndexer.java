@@ -109,7 +109,7 @@ public class ThumbnailIndexer extends Metadata {
                 if (!thumbnailUrl.isEmpty()) {
                     solrDocument = toSolrInputDocument(mmdId, createMetadataKeyValuePair(mmdId, thumbnailUrl));
                 } else {
-                    LOGGER.error("Unable to generate thumbnail for the metadata [" + mmdId + "]");
+                    LOGGER.error("Unable to generate thumbnail for the metadata [" + mmdId + "] using WMS [" + wmsUrl + "]");
                 }
             }
         }
@@ -206,6 +206,11 @@ public class ThumbnailIndexer extends Metadata {
             //get first named layer if no layer is provided
             if (thumbnailLayer == null && namedLayers.length > 0) {
                 thumbnailLayer = namedLayers[0];
+            }
+
+            //Chck layer has a name
+            if (thumbnailLayer == null || thumbnailLayer.getName() == null || thumbnailLayer.getName().isEmpty()) {
+                return "";
             }
 
             wmsNameValuePairs.add(new BasicNameValuePair("LAYERS", thumbnailLayer.getName()));
