@@ -22,9 +22,14 @@
 
 package no.met.metsis.metadata;
 
+import ch.qos.logback.classic.LoggerContext;
+import ch.qos.logback.classic.joran.JoranConfigurator;
+import ch.qos.logback.core.joran.spi.JoranException;
+import ch.qos.logback.core.util.StatusPrinter;
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
+import com.beust.jcommander.ParametersDelegate;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigException;
 import com.typesafe.config.ConfigFactory;
@@ -82,6 +87,9 @@ public class MetadataManager {
                 validateWith = BooleanFlagValidator.class)
         private String dryRun;
 
+        @ParametersDelegate
+        private final CommandLogAppender appender = new CommandLogAppender();
+
     }
 
     @Parameters(commandDescription = "Index metadata")
@@ -115,6 +123,9 @@ public class MetadataManager {
                 validateWith = BooleanFlagValidator.class)
         private String dryRun;
 
+        @ParametersDelegate
+        private final CommandLogAppender appender = new CommandLogAppender();
+
     }
 
     @Parameters(commandDescription = "Index thumbnail")
@@ -141,6 +152,9 @@ public class MetadataManager {
                 required = false,
                 validateWith = BooleanFlagValidator.class)
         private String dryRun;
+
+        @ParametersDelegate
+        private final CommandLogAppender appender = new CommandLogAppender();
     }
 
     @Parameters(commandDescription = "Index a single thumbnail from a single dateset")
@@ -167,6 +181,9 @@ public class MetadataManager {
                 required = false,
                 validateWith = BooleanFlagValidator.class)
         private String dryRun;
+
+        @ParametersDelegate
+        private final CommandLogAppender appender = new CommandLogAppender();
     }
 
     @Parameters(commandDescription = "Index a single netcdf feature from a single dateset")
@@ -188,6 +205,9 @@ public class MetadataManager {
                 validateWith = BooleanFlagValidator.class)
         private String dryRun;
 
+        @ParametersDelegate
+        private final CommandLogAppender appender = new CommandLogAppender();
+
     }
 
     @Parameters(commandDescription = "Index netcdf feature")
@@ -208,6 +228,9 @@ public class MetadataManager {
                 required = false,
                 validateWith = BooleanFlagValidator.class)
         private String dryRun;
+
+        @ParametersDelegate
+        private final CommandLogAppender appender = new CommandLogAppender();
     }
 
     @Parameters(commandDescription = "Create solr schema,")
@@ -223,6 +246,10 @@ public class MetadataManager {
                 description = "Destination directory where solr schema will be created",
                 validateWith = FilePathValidator.class)
         private String destinationDirectory;
+
+        @ParametersDelegate
+        private final CommandLogAppender appender = new CommandLogAppender();
+
     }
 
     @Parameters(commandDescription = "Clear the entire index of a particular core")
@@ -230,6 +257,14 @@ public class MetadataManager {
 
         @Parameter(names = "--server", description = "URL to the Solr server, including the core name", required = true)
         private String server;
+
+    }
+
+    @Parameters(commandDescription = "Clear the entire index of a particular core")
+    private static class CommandLogAppender {
+
+        @Parameter(names = "--appender", description = "Log appender. Suppoted values are [file, console]", required = false)
+        private String logAppender;
 
     }
 
@@ -253,6 +288,8 @@ public class MetadataManager {
         jc.addCommand("create-schema", schemaCommand);
         CommandClear clearCommand = new CommandClear();
         jc.addCommand("clear", clearCommand);
+        //CommandLogAppender appenderCommand = new CommandLogAppender();
+        //jc.addCommand("appender", appenderCommand);
         jc.parse(args);
 
         Config envConfig = ConfigFactory.systemEnvironment();
@@ -268,26 +305,31 @@ public class MetadataManager {
                 .withFallback(defaultAppConfig);
         //Config config = customAppConfig.getConfig("no.met.metsis.solr.jsonize");
 
+        //enable file based logging
+        if ("file".equalsIgnoreCase(schemaCommand.appender.logAppender)
+                || "file".equalsIgnoreCase(indexCommand.appender.logAppender)
+                || "file".equalsIgnoreCase(indexThumbnailCommand.appender.logAppender)
+                || "file".equalsIgnoreCase(ismc.appender.logAppender)
+                || "file".equalsIgnoreCase(istc.appender.logAppender)
+                || "file".equalsIgnoreCase(ifc.appender.logAppender)
+                || "file".equalsIgnoreCase(isfc.appender.logAppender)) {
+            try {
+                LoggerContext context = (LoggerContext) LoggerFactory.getILoggerFactory();
+                JoranConfigurator configurator = new JoranConfigurator();
+                configurator.setContext(context);
+                context.reset();
+                configurator.doConfigure(MetadataManager.class.getResourceAsStream("/secondary-logback.xml"));
+                StatusPrinter.printInCaseOfErrorsOrWarnings(context);
+            } catch (JoranException ex) {
+                LOGGER.warn(ex.getMessage());
+            }
+        }
+
         if ("index-metadata".equalsIgnoreCase(jc.getParsedCommand())) {
             LOGGER.info("Indexing metadata to [ " + indexCommand.server + " ]");
             List<String> requiredFields = customAppConfig.getStringList("no.met.metsis.solr.requiredFields");
             HttpSolrClient httpSolrClient = new HttpSolrClient(indexCommand.server);
             httpSolrClient.setParser(new XMLResponseParser());
-
-            //change log configuration
-            /*
-            if ("l2".equals(indexCommand.level)) {
-                try {
-                    LoggerContext context = (LoggerContext) LoggerFactory.getILoggerFactory();
-                    JoranConfigurator configurator = new JoranConfigurator();
-                    configurator.setContext(context);
-                    context.reset();
-                    configurator.doConfigure(MetMetadata.class.getResourceAsStream("/secondry-logback.xml"));
-                    StatusPrinter.printInCaseOfErrorsOrWarnings(context);
-                } catch (JoranException ex) {
-                    LOGGER.warn(ex.getMessage());
-                }
-            }*/
  /*
             MetMetadata metMetadata = new MetMetadata(indexCommand.level);
             metMetadata.solrClient(httpSolrClient);
@@ -370,5 +412,4 @@ public class MetadataManager {
         }
         System.out.println("Done!");
     }
-
 }

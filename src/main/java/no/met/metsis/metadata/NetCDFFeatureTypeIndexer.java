@@ -131,11 +131,11 @@ public class NetCDFFeatureTypeIndexer extends Metadata {
                 isOpenDap = isOpenDap.toUpperCase();
                 if (isOpenDap.startsWith("OPENDAP")) {
                     try {
-                        token = StringUtils.substringAfter(token, ":");
+                        token = StringUtils.substringAfter(token, ":");                        
                         NetcdfDataset netcdfDataset = NetcdfDataset.openDataset(token);
                         List<Attribute> globalAttributes = netcdfDataset.getGlobalAttributes();
 
-                        for (Attribute globalAttribute : globalAttributes) {
+                        for (Attribute globalAttribute : globalAttributes) {                            
                             if ("featureType".equalsIgnoreCase(globalAttribute.getFullName())) {
                                 return globalAttribute.getStringValue();
                             }

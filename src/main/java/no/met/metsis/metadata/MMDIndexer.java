@@ -77,16 +77,21 @@ public class MMDIndexer extends Metadata {
             List<SolrInputDocument> documents = new ArrayList<>();
             documents.add(solrInputDocument);
             doIndex(documents);
+            indexRelatedDataset(true);
+        } else {
+            LOGGER.warn("Skipping indexing of metadata ["
+                    + id + "] since it is missing required attributes ["
+                    + requiredFields.toString() + "]");
         }
 
     }
 
-    private void indexRelatedDataset() throws SolrServerException, IOException {
+    private void indexRelatedDataset(boolean isSingleDataset) throws SolrServerException, IOException {
         Set<String> keySet = relatedDatasetMap.keySet();
         List<SolrInputDocument> documents = new ArrayList<>();
         for (String key : keySet) {
             Collection<String> relatedDatasets = relatedDatasetMap.get(key);
-            documents.add(createRelatedDatasetDoc(key, relatedDatasets));
+            documents.add(createRelatedDatasetDoc(key, isSingleDataset, relatedDatasets));
         }
         //chnage base url to level 1
         String baseURL = solrClient().getBaseURL();
@@ -97,11 +102,11 @@ public class MMDIndexer extends Metadata {
         }
     }
 
-    private SolrInputDocument createRelatedDatasetDoc(String id, Collection<String> relatedDatasets) {
+    private SolrInputDocument createRelatedDatasetDoc(String id, boolean isSingleDataset, Collection<String> relatedDatasets) {
         SolrInputDocument document = new SolrInputDocument();
         document.addField("id", id);
         Map<String, Object> fieldModifier = new HashMap<>();
-        fieldModifier.put("set", relatedDatasets);
+        fieldModifier.put((isSingleDataset) ? "add" : "set", relatedDatasets);
         document.addField("mmd_related_dataset", fieldModifier);
         return document;
     }
@@ -258,7 +263,7 @@ public class MMDIndexer extends Metadata {
             List<SolrInputDocument> documents = new ArrayList<>();
             addDoument(documents, sourceDirectory, level, requiredFields);
             doIndex(documents);
-            indexRelatedDataset();
+            indexRelatedDataset(false);
         } catch (SolrServerException | IOException ex) {
             LOGGER.error("Failed to index MMD documents");
         }
