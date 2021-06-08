@@ -1,3 +1,7 @@
+# 
+# ARCHIVED DUE TO VULNERABILITIES IN THE DEPENDENCIES
+#
+
 # METSIS-metadata-ingestion
 
 ## Background
